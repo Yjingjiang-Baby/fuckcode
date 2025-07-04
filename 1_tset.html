@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .card-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      position: relative;
+    }
+    
+    .activity-card {
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      background-color: rgba(255,255,255,0.92);
+      backdrop-filter: blur(5px);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .activity-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    
+    .card-image {
+      width: 100%;
+      height: auto;
+      max-height: 300px;
+      min-height: 150px;
+      object-fit: cover;
+      border-radius: 4px;
+      filter: blur(0);
+      transition: filter 0.5s ease;
+    }
+
+    .card-slider.active .card-image {
+      filter: blur(8px);
+    }
+
+    @media (max-width: 768px) {
+      .card-image {
+        max-height: 220px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card-image {
+        max-height: 180px;
+      }
+    }
+    
+    .card-content {
+      margin-top: 10px;
+    }
+
+    /* 状态指示圆圈 */
+    .signup-time { position: relative; padding-left: 20px; }
+    .signup-time::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 50%; transform: translateY(-50%);
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .signup-time.upcoming::before { background-color: #ffefb0; }
+    .signup-time.active::before { background-color: #b5f7c5; }
+    .signup-time.expired::before { background-color: #ffd3ef; }
+
+    /* 签到时间状态样式 */
+    .checkin-time { position: relative; padding-left: 20px; }
+    .checkin-time::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 50%; transform: translateY(-50%);
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .checkin-time.checkin-upcoming::before { background-color: #ffefb0; }
+    .checkin-time.checkin-active::before { background-color: #b5f7c5; }
+    .checkin-time.checkin-expired::before { background-color: #ffd3ef; }
+
+    /* 按钮样式 */
+    .primary-btn {
+      position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+      width: 60px; height: 60px; border-radius: 50%;
+      background: white url('https://img.picui.cn/free/2025/07/04/6867a11bd405d.png') center/70% no-repeat;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: none; cursor: pointer; transition: all 0.3s ease;
+      padding: 0; font-size: 0;
+    }
+
+    .primary-btn:hover { transform: translateX(-50%) scale(1.1); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+    .primary-btn:active { transform: translateX(-50%) scale(0.95); }
+
+    .detail-btn {
+      background-color: #ff69b4;
+      background-image: linear-gradient(145deg, #ff85c0, #ff4da6);
+      color: white; border: none; border-radius: 30px;
+      padding: 12px 24px; font-size: 15px; font-weight: 500;
+      cursor: pointer; transition: all 0.3s ease; width: 100%;
+      margin-top: 15px; box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+      position: relative; overflow: hidden;
+    }
+
+    .detail-btn::before {
+      content: ''; position: absolute; top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .detail-btn:hover { background-image: linear-gradient(145deg, #ff94c9, #ff3d9e); transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4); }
+    .detail-btn:hover::before { left: 100%; }
+    .detail-btn:active { transform: translateY(1px); box-shadow: 0 2px 10px rgba(255, 105, 180, 0.3); }
+
+    /* 滑动卡片样式 */
+    .card-slider {
+      position: relative; width: 100%; overflow: hidden;
+      border-radius: 8px; cursor: pointer; touch-action: pan-y;
+    }
+
+    .card-slider .slider-inner {
+      display: flex; width: calc(100% + 160px);
+      transition: transform 0.5s ease;
+    }
+
+    .card-slider .slider-inner .front { width: 100%; padding: 15px; }
+    .card-slider .slider-inner .back {
+      width: 160px; flex-shrink: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 10px;
+    }
+
+    .card-slider.active .slider-inner { transform: translateX(-160px); }
+
+    .arrow-indicator {
+      position: absolute; right: 170px; top: 50%; transform: translateY(-50%);
+      width: 0; height: 0;
+      border-top: 8px solid transparent; border-bottom: 8px solid transparent;
+      border-left: 8px solid #999;
+      animation: bounce 1.5s infinite; pointer-events: none;
+    }
+
+    @keyframes bounce { 0%, 100% { right: 170px; } 50% { right: 160px; } }
+
+    .qr-container { text-align: center; padding: 20px; }
+    .qr-code { width: 160px; height: 160px; margin-bottom: 10px; }
+    .qr-tip {
+      color: #6c757d; font-size: 14px;
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      opacity: 0.7;
+    }
+
+    /* 滑动提示箭头 */
+    .card-slider:not(.active)::after {
+      content: '→'; position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+      background-color: rgba(255,255,255,0.8);
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      color: #4285f4; font-weight: bold;
+      animation: bounce-slider 1.5s infinite;
+    }
+
+    @keyframes bounce-slider { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(5px); } }
+
+    /* 优化小屏滑动体验 */
+    @media (max-width: 480px) {
+      .card-slider:not(.active)::after { width: 26px; height: 26px; font-size: 14px; }
+      .arrow-indicator { right: 150px; }
+      @keyframes bounce { 0%, 100% { right: 150px; } 50% { right: 140px; } }
+    }
+
+    /* 确保内容不被截断 */
+    .college-info, .signup-time, .checkin-time { word-wrap: break-word; white-space: normal; }
+
+    /* 全屏动漫风背景 */
+    body { margin: 0; padding: 0; min-height: 100vh; position: relative; overflow-x: hidden; }
+    body::before {
+      content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: url('https://img.picui.cn/free/2025/07/04/6867a8250d602.jpg');
+      background-size: cover; background-position: center; background-attachment: fixed;
+      opacity: 0.85; z-index: -1;
+      filter: saturate(1.1) brightness(0.95);
+    }
+  </style>
+</head>
+<body>
+  <div class="card-container" id="cardContainer"></div>
+  <button class="primary-btn" onclick="sendRequest()" title="发送请求"></button>
+
+  <script>
+    function sendRequest() {
+      const params = new URLSearchParams();
+      params.append('method', 'search');
+      params.append('service', 'activityService');
+      params.append('params', JSON.stringify({
+        "keywords": "", "level": "", "pageNum": 1, "pageSize": 10, "sptype": "", "status": "1", "type": ""
+      }));
+
+      fetch('http://210.26.0.114:9090/yrpt/remote/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'com.hangutech.mdqn'
+        },
+        body: params
+      })
+      .then(response => { if (!response.ok) throw new Error('网络响应不正常'); return response.json(); })
+      .then(data => { renderCards(data.datas); })
+      .catch(error => { console.error('请求失败:', error); alert('获取数据失败，请检查网络连接'); });
+    }
+
+    function renderCards(activities) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() + 2);
+      const failTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+
+      const container = document.getElementById('cardContainer');
+      container.innerHTML = activities.map(activity => {
+        const currentTime = new Date();
+        // 报名时间状态判断
+        const signupBegin = new Date(activity.signup_begin_time);
+        const signupEnd = new Date(activity.signup_end_time);
+        let statusClass = currentTime < signupBegin ? 'upcoming' : currentTime > signupEnd ? 'expired' : 'active';
+        
+        // 签到时间状态判断
+        const checkinBegin = new Date(activity.begin_time);
+        const checkinEnd = new Date(activity.end_time);
+        let checkinStatusClass = currentTime < checkinBegin ? 'checkin-upcoming' : currentTime > checkinEnd ? 'checkin-expired' : 'checkin-active';
+        
+        return `
+          <div class="activity-card">
+            <div class="card-slider">
+              <div class="slider-inner">
+                <div class="front">
+                  <img src="${activity.title_img}" class="card-image" onerror="this.style.display='none'">
+                  <div class="card-content">
+                    <h3>${activity.name}</h3>
+                    <div class="college-info"><span>主办单位：</span>${activity.sponsor}</div>
+                    <div class="signup-time ${statusClass}"><span>报名时间：</span>${formatTime(activity.signup_begin_time)} - ${formatTime(activity.signup_end_time)}</div>
+                    <div class="checkin-time ${checkinStatusClass}"><span>签到时间：</span>${formatTime(activity.begin_time)} - ${formatTime(activity.end_time)}</div>
+                  </div>
+                </div>
+                <div class="back">
+                  <div class="qr-container">
+                    <img src="https://api.qrtool.cn/?text=${encodeURIComponent(JSON.stringify({type: 'activityCheckin',id: activity.id,failTime: failTime}))}" class="qr-code" onerror="this.style.display='none'">
+                    <p class="qr-tip"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button class="detail-btn" onclick="location.href='${activity.share_url}'">查看详情</button>
+          </div>
+        `;
+      }).join('');
+      initCardSlider();
+    }
+
+    function formatTime(timeString) {
+      if (!timeString) return '未知时间';
+      const parts = timeString.split(' ');
+      return parts.length < 2 ? timeString : parts[0] + ' ' + parts[1].split(':').slice(0, 2).join(':');
+    }
+
+    function initCardSlider() {
+      const container = document.getElementById('cardContainer');
+      const newContainer = container.cloneNode(true);
+      container.parentNode.replaceChild(newContainer, container);
+
+      // 点击切换功能
+      newContainer.addEventListener('click', function(e) {
+        const slider = e.target.closest('.card-slider');
+        if (slider) slider.classList.toggle('active');
+      });
+
+      // 触摸滑动功能
+      let startX;
+      newContainer.addEventListener('touchstart', function(e) {
+        const slider = e.target.closest('.card-slider');
+        if (slider) startX = e.touches[0].clientX;
+      }, false);
+
+      newContainer.addEventListener('touchend', function(e) {
+        if (!startX) return;
+        const slider = e.target.closest('.card-slider');
+        if (slider) {
+          const endX = e.changedTouches[0].clientX;
+          const diffX = startX - endX;
+          if (diffX < -30) slider.classList.add('active');
+          else if (diffX > 30) slider.classList.remove('active');
+        }
+        startX = null;
+      }, false);
+    }
+  </script>
+</body>
+</html>
