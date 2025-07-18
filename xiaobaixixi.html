@@ -485,7 +485,7 @@ overlay.addEventListener('touchend', (e) => {
   const image = document.querySelector('.lock-screen-image');
   const overlayEl = document.querySelector('.lock-screen-overlay');
   
-  if (diffY > window.innerHeight * 0.3) {
+  if (diffY > window.innerHeight * 0.05) {
     // 计算剩余距离并创建平滑过渡动画
     const currentTransform = window.getComputedStyle(image).transform;
     const matrix = new DOMMatrix(currentTransform);
