@@ -448,14 +448,20 @@
     });
   }
 }
+
     function unlockScreen() {
       const overlay = document.querySelector('.lock-screen-overlay');
+        const image = document.querySelector('.lock-screen-image');
+          image.style.transform = '';
+  image.style.transition = 'transform 0.3 scubic-bezier(0, 0, 0.58, 1)';
+  
       overlay.classList.add('slide-up');
       // 仅保留动画和隐藏逻辑，移除sendRequest调用
       setTimeout(() => {
-        overlay.style.display = 'none';
-      }, 800);
-    }
+    overlay.style.display = 'none';
+    image.style.transition = ''; // 恢复默认过渡效果
+  }, 800);
+}
 
     // 添加触摸滑动支持
     // 删除以下触摸滑动相关代码
@@ -485,7 +491,7 @@ overlay.addEventListener('touchend', (e) => {
   const image = document.querySelector('.lock-screen-image');
   const overlayEl = document.querySelector('.lock-screen-overlay');
   
-  if (diffY > window.innerHeight * 0.05) {
+  if (diffY > window.innerHeight * 0.3) {
     // 计算剩余距离并创建平滑过渡动画
     const currentTransform = window.getComputedStyle(image).transform;
     const matrix = new DOMMatrix(currentTransform);
