@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <title>小白嘻嘻</title>
   <style>
-    /* 基础样式与布局 */
+     /* 基础样式与布局 */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { min-height: 100vh; position: relative; overflow-x: hidden; }
     .card-container {
@@ -15,18 +15,12 @@
       align-items: stretch; /* 新增对齐方式 */
     }
     .element {
-    transition: transform 0.3s ease;
-}
-.element:hover {
-    transform: translateX(0); /* 强制硬件加速 */
-}
-``` ‌:ml-citation{ref="1" data="citationList"}
-
-.element {
-    will-change: transform;
-}
-``` ‌:ml-citation{ref="1" data="citationList"}
-
+      transition: transform 0.3s ease;
+      will-change: transform; /* 合并重复的.element选择器 */
+    }
+    .element:hover {
+      transform: translateX(0); /* 强制硬件加速 */
+    }
 
     .activity-card {
       display: flex;
@@ -34,7 +28,6 @@
       height: 100%; /* 填充网格高度 */
       /* 保持原有样式 */
     }
-    
     .card-content {
       flex: 1; /* 填充剩余空间 */
       padding: 15px;
@@ -98,7 +91,7 @@
     
     /* 优化卡片布局 */
     .activity-card {
-      border-radius: 16px;
+      border-radius: 24px;
       overflow: hidden;
       box-shadow: 0 4px 20px rgba(0,0,0,0.08);
       padding: 0; /* 确保没有内边距影响 */
@@ -435,10 +428,26 @@
     </div>
   </div>
   <div class="card-container" id="cardContainer"></div>
-  <button id="btn" class="primary-btn" onclick="unlockScreen()" title="向上滑动解锁"></button>
+<button id="btn" class="primary-btn" onclick="scrollToTop()" title="返回顶部"></button>
 
   <script>
-    // 修改解锁函数
+    function scrollToTop() {
+  // 先执行解锁操作
+  unlockScreen(); 
+  
+  // 添加平滑滚动
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+
+  // 手机端兼容方案
+  if ('scrollBehavior' in document.documentElement.style === false) {
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+    });
+  }
+}
     function unlockScreen() {
       const overlay = document.querySelector('.lock-screen-overlay');
       overlay.classList.add('slide-up');
@@ -468,19 +477,54 @@
       }
     }, false);
 
-    overlay.addEventListener('touchend', (e) => {
-      const endY = e.changedTouches[0].clientY;
-      const diffY = startY - endY;
-      
-      // 如果滑动距离超过屏幕高度的30%，则完成解锁
-      if (diffY > window.innerHeight * 0.3) {
-        unlockScreen();
+   // ... existing code ...
+// ... existing code ...
+overlay.addEventListener('touchend', (e) => {
+  const endY = e.changedTouches[0].clientY;
+  const diffY = startY - endY;
+  const image = document.querySelector('.lock-screen-image');
+  const overlayEl = document.querySelector('.lock-screen-overlay');
+  
+  if (diffY > window.innerHeight * 0.3) {
+    // 计算剩余距离并创建平滑过渡动画
+    const currentTransform = window.getComputedStyle(image).transform;
+    const matrix = new DOMMatrix(currentTransform);
+    const currentY = matrix.m42;
+    const targetY = -window.innerHeight;
+    const distance = targetY - currentY;
+    const duration = 500; // 动画持续时间
+    const startTime = performance.now();
+
+    function animateSlideUp(timestamp) {
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeProgress = easeOutQuad(progress);
+      const newY = currentY + distance * easeProgress;
+
+      image.style.transform = `translateY(${newY}px)`;
+
+      if (progress < 1) {
+        requestAnimationFrame(animateSlideUp);
       } else {
-        // 否则回弹
-        document.querySelector('.lock-screen-image').style.transform = 'translateY(0)';
+        // 动画完成后隐藏覆盖层
+        overlayEl.style.display = 'none';
       }
-    }, false);
-    // 全局分页变量
+    }
+
+    // 使用缓动函数实现平滑动画
+    function easeOutQuad(t) {
+      return t * (2 - t);
+    }
+
+    requestAnimationFrame(animateSlideUp);
+  } else {
+    requestAnimationFrame(() => {
+      image.style.transform = 'translateY(0)';
+    });
+  }
+}, false);
+// ... existing code ...
+// ... existing code ...
     let currentPage = 1;
     let isLoading = false;
     let hasMore = true;
@@ -698,7 +742,7 @@ function hideLoadingIndicator() {
       <animate attributeName="scale" to="1" dur="0.3s" begin="btn.mouseout"   fill="freeze"/>
     </feDisplacementMap>
   </filter>
-</svg> 
+</svg>
 
 </body>
 </html>
